@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Online Notepad</title>
+<style>
+body {
+background-color: #f0f2f5;
+margin: 0;
+padding: 0;
+}
+.editorContainer {
+display: flex;
+flex-direction: column;
+width: 80%;
+max-width: 900px;
+margin: 30px auto;
+background: #ffffff;
+border: 1px solid #ddd;
+border-radius: 4px;
+box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+/* Fullscreen styles */
+:fullscreen .editorContainer {
+width: 100vw;
+height: 100vh;
+margin: 0;
+padding: 0; /* Adjust padding as needed */
+border: none; /* Remove border if desired */
+}
+
+
+.toolbar {
+
+display: flex;
+flex-wrap: wrap; 
+gap: 8px;
+justify-content: space-between;
+padding: 8px;
+border-bottom: 1px solid #ddd;
+background-color: #f9f9f9;
+}
+.menu, .buttons {
+display: flex;
+gap: 8px;
+flex-wrap: wrap; 
+}
+.toolbar .menu > div, .toolbar .buttons > button {
+cursor: pointer;
+padding: 5px 10px;
+border: none;
+background: #f3f3f3;
+border-radius: 4px;
+font-weight: bold;
+}
+.menu > div:hover, .buttons > button:hover {
+background: #e0e0e0;
+}
+
+.menuItem {
+cursor: pointer;
+padding: 5px 10px;
+background: #f3f3f3;
+border-radius: 4px;
+font-weight: bold;
+position: relative;
+}
+.menuItem:hover {
+background: #e0e0e0;
+}
+.dropdownMenu {
+display: none;
+position: absolute;
+top: 100%;
+left: 0;
+background-color: #ffffff;
+border: 1px solid #ddd;
+border-radius: 4px;
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+padding: 5px 0;
+width: max-content;
+z-index:2;
+}
+.dropdownItem, .insertSubMenuItem {
+padding: 8px 16px;
+display: flex;
+align-items: center;
+cursor: pointer;
+width: max-content;
+}
+.dropdownItem:hover, .insertSubMenuItem:hover {
+background-color: #f0f0f0;
+}
+
+.dropdownItem a{
+text-decoration: none; /* Remove underline */
+color: inherit;   /* Use the default text color */
+}
+
+
+.editor {
+height: 400px;
+width:100%;
+padding: 10px;
+resize: none;
+font-size: 16px;
+box-sizing: border-box;
+border: 1px solid #cccccc;
+outline: none; /* Remove the default focus outline */
+}
+
+.statusBar { 
+display: flex;
+justify-content: space-between;
+padding: 5px 10px;
+font-size: 14px;
+color: #767;
+background: #f9f9f9;
+border-top: 1px solid #ddd;
+}
+
+#wordCountContainer{ 
+margin-left: auto;
+}
+
+#infoMessages{ 
+border:solid 1px #cccccc;
+height: 25px;
+}
+
+#modalContent{ 
+display:none;
+}
+
+.warningMessage{ 
+color:red;
+}
+
+
+
+.additionalDialog {
+background: white;
+border-radius: 8px;
+box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+width: 400px;
+position: fixed;
+transform: translate(-50%, -50%);
+border: 1px solid #e5e7eb;
+z-index: 1;
+transition: opacity 0.2s ease;
+}
+
+
+.additionalDialog .dragging {
+opacity: 0.8;
+box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+/* Prevent text selection while dragging */
+-webkit-user-select: none;
+-moz-user-select: none;
+-ms-user-select: none;
+user-select: none;
+}
+
+.additionalDialog .dialogHeader {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 12px 16px;
+border-bottom: 1px solid #e5e7eb;
+background: #f9fafb;
+border-radius: 8px 8px 0 0;
+cursor: grab;
+user-select: none;
+/* Make header look draggable */
+cursor: grab;
+/* Prevent text selection */
+-webkit-user-select: none;
+-moz-user-select: none;
+-ms-user-select: none;
+user-select: none;
+}
+
+/* Style for when header is being dragged */
+.additionalDialog .dragging .dialogHeader {
+cursor: grabbing;
+background: #f3f4f6; /* Slightly darker when dragging */
+}
+
+/* Ensure the cursor stays as grabbing even when moving outside the header */
+.additionalDialog .dragging * {
+cursor: grabbing !important;
+}
+
+.additionalDialog .dialogTitle {
+font-weight: 600;
+color: #374151;
+font-size: 1rem;
+}
+
+.additionalDialog .closeButton {
+background: transparent;
+border: none;
+color: #6b7280;
+cursor: pointer;
+padding: 4px 8px;
+border-radius: 4px;
+transition: background-color 0.2s;
+}
+
+.additionalDialog .closeButton:hover {
+background-color: #f3f4f6;
+}
+
+.additionalDialog .dialogBody {
+padding: 16px;
+}
+
+.additionalDialog .form-item {
+margin-bottom: 16px;
+}
+
+.additionalDialog .form-item label {
+display: block;
+margin-bottom: 4px;
+color: #374151;
+font-size: 0.875rem;
+}
+
+.additionalDialog .textbox {
+width: 100%;
+padding: 8px 0px;
+border: 1px solid #d1d5db;
+border-radius: 6px;
+font-size: 0.875rem;
+transition: border-color 0.2s;
+}
+
+.additionalDialog .textbox:focus {
+outline: none;
+border-color: #3b82f6;
+box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.additionalDialog .checkbox-group {
+display: flex;
+gap: 16px;
+}
+
+.additionalDialog .checkbox-group label {
+display: flex;
+align-items: center;
+gap: 6px;
+color: #374151;
+font-size: 0.875rem;
+cursor: pointer;
+}
+
+.additionalDialog .checkbox-group input[type="checkbox"] {
+width: 16px;
+height: 16px;
+border-radius: 4px;
+cursor: pointer;
+}
+
+.additionalDialog .dialog-footer {
+display: flex;
+justify-content: center;
+gap: 8px;
+border-top: 1px solid #e5e7eb;
+background: #f9fafb;
+border-radius: 0 0 8px 8px;
+}
+
+.additionalDialog .dialog-footer button {
+padding: 8px 12px;
+border-radius: 6px;
+font-size: 0.875rem;
+font-weight: 500;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.additionalDialog .primary-button {
+background: #3b82f6;
+color: white;
+border: none;
+}
+
+.additionalDialog .primary-button:hover {
+background: #2563eb;
+}
+
+.additionalDialog .secondary-button {
+background: white;
+color: #374151;
+border: 1px solid #d1d5db;
+}
+
+.additionalDialog .secondary-button:hover {
+background: #f9fafb;
+border-color: #9ca3af;
+}
+
+.additionalDialog .navigation-button {
+background: #f3f4f6;
+color: #374151;
+border: 1px solid #d1d5db;
+}
+
+.additionalDialog .navigation-button:hover {
+background: #e5e7eb;
+}
+
+.highlighted {
+background-color: yellow; /* Highlight color */
+}
+
+
+#specialSymbolsDialog{ 
+width: 500px;
+}
+
+
+#specialSymbolsTable td{ 
+cursor:pointer;
+}
+
+
+.insertMenuItem {
+display: flex;
+align-items: center;
+padding: 8px 12px;
+cursor: pointer;
+user-select: none;
+gap: 8px;
+color: #333;
+}
+
+.insertMenuItem:hover {
+background-color: #f0f0f0;
+}
+
+.insertMenuItem.selected {
+background-color: #e8e8e8;
+}
+
+.insertMenuItemExpand::after {
+content: '›';
+margin-left: auto;
+font-size: 1.2em;
+}
+
+/* Submenu specific styles */
+.insertSubmenu {
+position: absolute;
+left: 100%;
+top: 0;
+background: white;
+border: 1px solid #ccc;
+border-radius: 4px;
+box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+min-width: 120px;
+display: none;
+}
+
+/*
+.insertMenuItem:hover .insertSubmenu {
+display: none;
+}
+.insertMenuItemExpand:hover > .insertSubmenu {
+display: block;
+} */
+
+
+
+/* Dark mode styling */
+.dark-mode {
+background-color: #121212; /* Dark background */
+color: #ffffff; /* Light text color */
+}
+
+/* Dark mode styles for toolbar buttons and menu items */
+.dark-mode .toolbar .menu > div,
+.dark-mode .toolbar .buttons > button {
+background-color: #333333; /* Dark background for buttons and menu items */
+color: #ffffff; /* Light text color */
+border: none;
+}
+
+.dark-mode .toolbar .menu > div:hover,
+.dark-mode .toolbar .buttons > button:hover {
+background-color: #555555; /* Slightly lighter background on hover */
+}
+
+
+/* Override specific elements for dark mode */
+.dark-mode .toolbar, 
+.dark-mode .statusBar, 
+.dark-mode #fileMenu, 
+.dark-mode #editMenu, 
+.dark-mode #insertMenu, 
+.dark-mode #viewMenu, 
+.dark-mode #helpMenu,
+.dark-mode .buttons button,
+.dark-mode #modalContent {
+background-color: #333333; /* Darker background for toolbars, modals */
+color: #ffffff;
+border: 1px solid #444444;
+}
+
+.dark-mode .menuItem,
+.dark-mode .dropdownItem,
+.dark-mode .insertMenuItem {
+background-color: #444444; /* Dark dropdown background */
+color: #ffffff;
+}
+
+.dark-mode .dropdownItem:hover,
+.dark-mode .menuItem:hover {
+background-color: #555555; /* Slightly lighter on hover */
+}
+
+.dark-mode #editor {
+background-color: #1e1e1e; /* Dark background for textarea */
+color: #e0e0e0; /* Light text */
+border: 1px solid #555555;
+}
+
+.dark-mode #wordCountContainer {
+color: #e0e0e0; /* Light text for word count */
+}
+
+.dark-mode #insertDateTimeSubmenu {
+background-color: #333333;
+color: #ffffff;
+}
+
+/* Any additional elements */
+.dark-mode #infoMessages .warningMessage {
+color: #ffcc00; /* Warning messages in yellow for dark mode */
+}
+
+
+.textareaContainer {
+position: relative;
+display: inline-block;
+}
+
+
+.resize-handle {
+width: 15px;
+height: 15px;
+background: #ccc;
+position: absolute;
+bottom: 7px;
+right: 3px;
+cursor: nwse-resize;
+}
+
+
+
+
+
+
+@media (max-width: 600px) {
+.editorContainer {
+width: 95%; 
+}
+.toolbar {
+gap: 4px; 
+}
+.menu > div, .buttons > button {
+padding: 4px 8px; 
+}
+.dropdownMenu {
+width: 120px; 
+}
+}
+
+
+
+
+</style>
+</head>
+<body>
+<div class="editorContainer">
+<div class="toolbar">
+
+<div class="menu">
+<div class="menuItem" onclick="toggleFileMenu()">File
+<div id="fileMenu" class="dropdownMenu">
+<div class="dropdownItem" onclick="newFile()">🗎 New Document</div>
+<div class="dropdownItem" onclick="saveFile()">💾 Save</div>
+<div class="dropdownItem" onclick="openDocument()">📂 Open</div>
+<div class="dropdownItem" onclick="printDocument()">🖨️ Print</div>
+</div>
+</div>
+
+<div class="menuItem" onclick="toggleEditMenu()">Edit
+<div id="editMenu" class="dropdownMenu">
+<div class="dropdownItem" onclick="undoDocument()">↩️ Undo</div>
+<div class="dropdownItem" onclick="redoDocument()">↪️ Redo</div>
+<div class="dropdownItem" onclick="cutContent()">✂️ Cut</div>
+<div class="dropdownItem" onclick="copyContent()">📄 Copy</div>
+<div class="dropdownItem" onclick="pasteContent()">📋 Paste</div>
+<div class="dropdownItem" onclick="selectAllDocument()">🔲 Select All</div>
+<div class="dropdownItem" onclick="toggleFindAndReplaceDialog()">🔍 Find and Replace</div>
+</div>
+</div>
+
+
+<div class="menuItem" onclick="toggleInsertMenu()">Insert
+<div id="insertMenu" class="dropdownMenu" style="display:none;">
+<div class="insertMenuItem insertMenuItemExpand" id="insertDateTime" onmouseover="updateDateTimeSubmenu()" onmouseout="closeDateTimeSubmenu()" > Date/time
+<div class="insertSubmenu" id="insertDateTimeSubmenu">
+</div>
+</div>
+<div class="insertMenuItem" onclick="toggleSpecialSymbolsDialog()">Special character</div>
+<div class="insertMenuItem" onclick="insertNonBreakingSpace()">Nonbreaking space</div>
+</div>
+</div>
+
+
+
+<div class="menuItem" onclick="toggleViewMenu()">View
+<div id="viewMenu" class="dropdownMenu" style="display:none;">
+<div class="dropdownItem" onclick="darkMode()">Dark Mode</div>
+<div class="dropdownItem" onclick="zoomIn()">Zoom In +</div>
+<div class="dropdownItem" onclick="zoomOut()">Zoom Out -</div>
+<div class="dropdownItem" onclick="fullScreen()">Full screen</div>
+</div>
+</div>
+
+
+<div class="menuItem" onclick="toggleHelpMenu()">Help
+<div id="helpMenu" class="dropdownMenu" style="display:none;">
+<div class="dropdownItem"><a href="https://www.vizoqo.com/contact" target="_blank">Feedback</a></div>
+</div>
+</div>
+
+</div>
+
+<div class="buttons">
+<button onclick="newFile()" style="font-size:19px; padding:0px 10px ;">&#x1F5CE;</button> 
+<button onclick="saveFile()">💾</button>
+<button onclick="cutText()">✂️</button>
+<button onclick="copyContent()">📄</button>
+<button onclick="pasteContent()">📋</button>
+<button onclick="undo()">↩️</button>
+<button onclick="redo()">↪️</button>
+</div>
+
+</div>
+
+
+<div id="infoMessages">
+<div id="modalContent">
+<span class="warningMessage">Are you sure you want to clear the editor?</span> <button id="confirmYes">Yes</button> <button id="confirmNo">No</button>
+</div>
+</div>
+
+
+
+<div class="textareaContainer">
+<textarea id="editor" class="editor" placeholder="Start typing here..."></textarea>
+<div class="resize-handle"></div>
+</div>
+<div class="statusBar">
+<div id="wordCountContainer">
+Words: <span id="wordCount">0</span>
+</div>
+</div>
+
+</div>
+
+
+<input type="file" id="fileInput" style="display: none;" accept=".txt,.md,.html">
+
+<div id="findReplaceDialog" class="additionalDialog" style="display:none;" role="dialog" aria-labelledby="dialogTitle">
+<div class="dialogHeader">
+<div class="dialogTitle">Find and Replace</div>
+<button type="button" class="closeButton" onclick="closeFindReplaceDialog()">✖</button>
+</div>
+<div class="dialogBody">
+<div class="form-item">
+<label for="findInput">Find:</label>
+<input id="findInput" type="text" class="textbox" />
+</div>
+<div class="form-item">
+<label for="replaceInput">Replace with:</label>
+<input id="replaceInput" type="text" class="textbox" />
+</div>
+<div class="checkbox-group">
+<label>
+<input type="checkbox" id="caseSensitiveCheckbox" onclick="caseSensitiveCheckboxClicked()" />
+Match case
+</label>
+<label>
+<input type="checkbox" id="wholeWordsCheckbox" onclick="wholeWordsCheckboxClicked()" />
+Whole words
+</label>
+</div>
+</div>
+<div class="dialog-footer">
+<button onclick="findText()">Find</button>
+<button onclick="replaceText()">Replace</button>
+<button onclick="replaceAllText()">Replace All</button>
+<button onclick="findPrevText()">Prev</button>
+<button onclick="findNextText()">Next</button>
+</div>
+</div>
+
+
+<div id="specialSymbolsDialog" class="additionalDialog" style="display:none;">
+<div class="dialogHeader">
+<div class="dialogTitle">Special symbols</div>
+<button type="button" class="closeButton" onclick="closeSpecialSymbolsDialog()">✖</button>
+</div>
+
+<div class="dialogBody">
+
+<table id="specialSymbolsTable"><tbody><tr>
+<td title="no-break space"><div data-chr="&nbsp;">&nbsp;</div></td>
+<td title="soft hyphen"><div data-chr="&shy;">&shy;</div></td>
+<td title="quotation mark"><div title="quotation mark" data-chr="" "="">"</div></td>
+<td title="cent sign"><div title="cent sign" data-chr="¢">¢</div></td>
+<td title="euro sign"><div title="euro sign" data-chr="€">€</div></td><td title="pound sign"><div title="pound sign" data-chr="£">£</div></td><td title="yen sign"><div title="yen sign" data-chr="¥">¥</div></td><td title="copyright sign"><div title="copyright sign" data-chr="©">©</div></td><td title="registered sign"><div title="registered sign" data-chr="®">®</div></td><td title="trade mark sign"><div title="trade mark sign" data-chr="™">™</div></td><td title="per mille sign"><div title="per mille sign" data-chr="‰">‰</div></td><td title="micro sign"><div title="micro sign" data-chr="µ">µ</div></td><td title="middle dot"><div title="middle dot" data-chr="·">·</div></td><td title="bullet"><div title="bullet" data-chr="•">•</div></td><td title="three dot leader"><div title="three dot leader" data-chr="…">…</div></td><td title="minutes / feet"><div title="minutes / feet" data-chr="′">′</div></td><td title="seconds / inches"><div title="seconds / inches" data-chr="″">″</div></td><td title="section sign"><div title="section sign" data-chr="§">§</div></td><td title="paragraph sign"><div title="paragraph sign" data-chr="¶">¶</div></td><td title="sharp s / ess-zed"><div title="sharp s / ess-zed" data-chr="ß">ß</div></td><td title="single left-pointing angle quotation mark"><div title="single left-pointing angle quotation mark" data-chr="‹">‹</div></td><td title="single right-pointing angle quotation mark"><div title="single right-pointing angle quotation mark" data-chr="›">›</div></td><td title="left pointing guillemet"><div title="left pointing guillemet" data-chr="«">«</div></td><td title="right pointing guillemet"><div title="right pointing guillemet" data-chr="»">»</div></td><td title="left single quotation mark"><div title="left single quotation mark" data-chr="‘">‘</div></td></tr><tr><td title="right single quotation mark"><div title="right single quotation mark" data-chr="’">’</div></td><td title="left double quotation mark"><div title="left double quotation mark" data-chr="“">“</div></td><td title="right double quotation mark"><div title="right double quotation mark" data-chr="”">”</div></td><td title="single low-9 quotation mark"><div title="single low-9 quotation mark" data-chr="‚">‚</div></td><td title="double low-9 quotation mark"><div title="double low-9 quotation mark" data-chr="„">„</div></td><td title="less-than sign"><div title="less-than sign" data-chr="<">&lt;</div></td><td title="greater-than sign"><div title="greater-than sign" data-chr=">">&gt;</div></td><td title="less-than or equal to"><div title="less-than or equal to" data-chr="≤">≤</div></td><td title="greater-than or equal to"><div title="greater-than or equal to" data-chr="≥">≥</div></td><td title="en dash"><div title="en dash" data-chr="–">–</div></td><td title="em dash"><div title="em dash" data-chr="—">—</div></td><td title="macron"><div title="macron" data-chr="¯">¯</div></td><td title="overline"><div title="overline" data-chr="‾">‾</div></td><td title="currency sign"><div title="currency sign" data-chr="¤">¤</div></td><td title="broken bar"><div title="broken bar" data-chr="¦">¦</div></td><td title="diaeresis"><div title="diaeresis" data-chr="¨">¨</div></td><td title="inverted exclamation mark"><div title="inverted exclamation mark" data-chr="¡">¡</div></td><td title="turned question mark"><div title="turned question mark" data-chr="¿">¿</div></td><td title="circumflex accent"><div title="circumflex accent" data-chr="ˆ">ˆ</div></td><td title="small tilde"><div title="small tilde" data-chr="˜">˜</div></td><td title="degree sign"><div title="degree sign" data-chr="°">°</div></td><td title="minus sign"><div title="minus sign" data-chr="−">−</div></td><td title="plus-minus sign"><div title="plus-minus sign" data-chr="±">±</div></td><td title="division sign"><div title="division sign" data-chr="÷">÷</div></td><td title="fraction slash"><div title="fraction slash" data-chr="⁄">⁄</div></td></tr><tr><td title="multiplication sign"><div title="multiplication sign" data-chr="×">×</div></td><td title="superscript one"><div title="superscript one" data-chr="¹">¹</div></td><td title="superscript two"><div title="superscript two" data-chr="²">²</div></td><td title="superscript three"><div title="superscript three" data-chr="³">³</div></td><td title="fraction one quarter"><div title="fraction one quarter" data-chr="¼">¼</div></td><td title="fraction one half"><div title="fraction one half" data-chr="½">½</div></td><td title="fraction three quarters"><div title="fraction three quarters" data-chr="¾">¾</div></td><td title="function / florin"><div title="function / florin" data-chr="ƒ">ƒ</div></td><td title="integral"><div title="integral" data-chr="∫">∫</div></td><td title="n-ary sumation"><div title="n-ary sumation" data-chr="∑">∑</div></td><td title="infinity"><div title="infinity" data-chr="∞">∞</div></td><td title="square root"><div title="square root" data-chr="√">√</div></td><td title="similar to"><div title="similar to" data-chr="∼">∼</div></td><td title="approximately equal to"><div title="approximately equal to" data-chr="≅">≅</div></td><td title="almost equal to"><div title="almost equal to" data-chr="≈">≈</div></td><td title="not equal to"><div title="not equal to" data-chr="≠">≠</div></td><td title="identical to"><div title="identical to" data-chr="≡">≡</div></td><td title="element of"><div title="element of" data-chr="∈">∈</div></td><td title="not an element of"><div title="not an element of" data-chr="∉">∉</div></td><td title="contains as member"><div title="contains as member" data-chr="∋">∋</div></td><td title="n-ary product"><div title="n-ary product" data-chr="∏">∏</div></td><td title="logical and"><div title="logical and" data-chr="∧">∧</div></td><td title="logical or"><div title="logical or" data-chr="∨">∨</div></td><td title="not sign"><div title="not sign" data-chr="¬">¬</div></td><td title="intersection"><div title="intersection" data-chr="∩">∩</div></td></tr><tr><td title="union"><div title="union" data-chr="∪">∪</div></td><td title="partial differential"><div title="partial differential" data-chr="∂">∂</div></td><td title="for all"><div title="for all" data-chr="∀">∀</div></td><td title="there exists"><div title="there exists" data-chr="∃">∃</div></td><td title="diameter"><div title="diameter" data-chr="∅">∅</div></td><td title="backward difference"><div title="backward difference" data-chr="∇">∇</div></td><td title="asterisk operator"><div title="asterisk operator" data-chr="∗">∗</div></td><td title="proportional to"><div title="proportional to" data-chr="∝">∝</div></td><td title="angle"><div title="angle" data-chr="∠">∠</div></td><td title="acute accent"><div title="acute accent" data-chr="´">´</div></td><td title="cedilla"><div title="cedilla" data-chr="¸">¸</div></td><td title="feminine ordinal indicator"><div title="feminine ordinal indicator" data-chr="ª">ª</div></td><td title="masculine ordinal indicator"><div title="masculine ordinal indicator" data-chr="º">º</div></td><td title="dagger"><div title="dagger" data-chr="†">†</div></td><td title="double dagger"><div title="double dagger" data-chr="‡">‡</div></td><td title="A - grave"><div title="A - grave" data-chr="À">À</div></td><td title="A - acute"><div title="A - acute" data-chr="Á">Á</div></td><td title="A - circumflex"><div title="A - circumflex" data-chr="Â">Â</div></td><td title="A - tilde"><div title="A - tilde" data-chr="Ã">Ã</div></td><td title="A - diaeresis"><div title="A - diaeresis" data-chr="Ä">Ä</div></td><td title="A - ring above"><div title="A - ring above" data-chr="Å">Å</div></td><td title="A - macron"><div title="A - macron" data-chr="Ā">Ā</div></td><td title="ligature AE"><div title="ligature AE" data-chr="Æ">Æ</div></td><td title="C - cedilla"><div title="C - cedilla" data-chr="Ç">Ç</div></td><td title="E - grave"><div title="E - grave" data-chr="È">È</div></td></tr><tr><td title="E - acute"><div title="E - acute" data-chr="É">É</div></td><td title="E - circumflex"><div title="E - circumflex" data-chr="Ê">Ê</div></td><td title="E - diaeresis"><div title="E - diaeresis" data-chr="Ë">Ë</div></td><td title="E - macron"><div title="E - macron" data-chr="Ē">Ē</div></td><td title="I - grave"><div title="I - grave" data-chr="Ì">Ì</div></td><td title="I - acute"><div title="I - acute" data-chr="Í">Í</div></td><td title="I - circumflex"><div title="I - circumflex" data-chr="Î">Î</div></td><td title="I - diaeresis"><div title="I - diaeresis" data-chr="Ï">Ï</div></td><td title="I - macron"><div title="I - macron" data-chr="Ī">Ī</div></td><td title="ETH"><div title="ETH" data-chr="Ð">Ð</div></td><td title="N - tilde"><div title="N - tilde" data-chr="Ñ">Ñ</div></td><td title="O - grave"><div title="O - grave" data-chr="Ò">Ò</div></td><td title="O - acute"><div title="O - acute" data-chr="Ó">Ó</div></td><td title="O - circumflex"><div title="O - circumflex" data-chr="Ô">Ô</div></td><td title="O - tilde"><div title="O - tilde" data-chr="Õ">Õ</div></td><td title="O - diaeresis"><div title="O - diaeresis" data-chr="Ö">Ö</div></td><td title="O - slash"><div title="O - slash" data-chr="Ø">Ø</div></td><td title="O - macron"><div title="O - macron" data-chr="Ō">Ō</div></td><td title="ligature OE"><div title="ligature OE" data-chr="Œ">Œ</div></td><td title="S - caron"><div title="S - caron" data-chr="Š">Š</div></td><td title="U - grave"><div title="U - grave" data-chr="Ù">Ù</div></td><td title="U - acute"><div title="U - acute" data-chr="Ú">Ú</div></td><td title="U - circumflex"><div title="U - circumflex" data-chr="Û">Û</div></td><td title="U - diaeresis"><div title="U - diaeresis" data-chr="Ü">Ü</div></td><td title="U - macron"><div title="U - macron" data-chr="Ū">Ū</div></td></tr><tr><td title="Y - acute"><div title="Y - acute" data-chr="Ý">Ý</div></td><td title="Y - diaeresis"><div title="Y - diaeresis" data-chr="Ÿ">Ÿ</div></td><td title="Y - macron"><div title="Y - macron" data-chr="Ȳ">Ȳ</div></td><td title="THORN"><div title="THORN" data-chr="Þ">Þ</div></td><td title="a - grave"><div title="a - grave" data-chr="à">à</div></td><td title="a - acute"><div title="a - acute" data-chr="á">á</div></td><td title="a - circumflex"><div title="a - circumflex" data-chr="â">â</div></td><td title="a - tilde"><div title="a - tilde" data-chr="ã">ã</div></td><td title="a - diaeresis"><div title="a - diaeresis" data-chr="ä">ä</div></td><td title="a - ring above"><div title="a - ring above" data-chr="å">å</div></td><td title="a - macron"><div title="a - macron" data-chr="ā">ā</div></td><td title="ligature ae"><div title="ligature ae" data-chr="æ">æ</div></td><td title="c - cedilla"><div title="c - cedilla" data-chr="ç">ç</div></td><td title="e - grave"><div title="e - grave" data-chr="è">è</div></td><td title="e - acute"><div title="e - acute" data-chr="é">é</div></td><td title="e - circumflex"><div title="e - circumflex" data-chr="ê">ê</div></td><td title="e - diaeresis"><div title="e - diaeresis" data-chr="ë">ë</div></td><td title="e - macron"><div title="e - macron" data-chr="ē">ē</div></td><td title="i - grave"><div title="i - grave" data-chr="ì">ì</div></td><td title="i - acute"><div title="i - acute" data-chr="í">í</div></td><td title="i - circumflex"><div title="i - circumflex" data-chr="î">î</div></td><td title="i - diaeresis"><div title="i - diaeresis" data-chr="ï">ï</div></td><td title="i - macron"><div title="i - macron" data-chr="ī">ī</div></td><td title="eth"><div title="eth" data-chr="ð">ð</div></td><td title="n - tilde"><div title="n - tilde" data-chr="ñ">ñ</div></td></tr><tr><td title="o - grave"><div title="o - grave" data-chr="ò">ò</div></td><td title="o - acute"><div title="o - acute" data-chr="ó">ó</div></td><td title="o - circumflex"><div title="o - circumflex" data-chr="ô">ô</div></td><td title="o - tilde"><div title="o - tilde" data-chr="õ">õ</div></td><td title="o - diaeresis"><div title="o - diaeresis" data-chr="ö">ö</div></td><td title="o slash"><div title="o slash" data-chr="ø">ø</div></td><td title="o macron"><div title="o macron" data-chr="ō">ō</div></td><td title="ligature oe"><div title="ligature oe" data-chr="œ">œ</div></td><td title="s - caron"><div title="s - caron" data-chr="š">š</div></td><td title="u - grave"><div title="u - grave" data-chr="ù">ù</div></td><td title="u - acute"><div title="u - acute" data-chr="ú">ú</div></td><td title="u - circumflex"><div title="u - circumflex" data-chr="û">û</div></td><td title="u - diaeresis"><div title="u - diaeresis" data-chr="ü">ü</div></td><td title="u - macron"><div title="u - macron" data-chr="ū">ū</div></td><td title="y - acute"><div title="y - acute" data-chr="ý">ý</div></td><td title="thorn"><div title="thorn" data-chr="þ">þ</div></td><td title="y - diaeresis"><div title="y - diaeresis" data-chr="ÿ">ÿ</div></td><td title="y - macron"><div title="y - macron" data-chr="ȳ">ȳ</div></td><td title="Alpha"><div title="Alpha" data-chr="Α">Α</div></td><td title="Beta"><div title="Beta" data-chr="Β">Β</div></td><td title="Gamma"><div title="Gamma" data-chr="Γ">Γ</div></td><td title="Delta"><div title="Delta" data-chr="Δ">Δ</div></td><td title="Epsilon"><div title="Epsilon" data-chr="Ε">Ε</div></td><td title="Zeta"><div title="Zeta" data-chr="Ζ">Ζ</div></td><td title="Eta"><div title="Eta" data-chr="Η">Η</div></td></tr><tr><td title="Theta"><div title="Theta" data-chr="Θ">Θ</div></td><td title="Iota"><div title="Iota" data-chr="Ι">Ι</div></td><td title="Kappa"><div title="Kappa" data-chr="Κ">Κ</div></td><td title="Lambda"><div title="Lambda" data-chr="Λ">Λ</div></td><td title="Mu"><div title="Mu" data-chr="Μ">Μ</div></td><td title="Nu"><div title="Nu" data-chr="Ν">Ν</div></td><td title="Xi"><div title="Xi" data-chr="Ξ">Ξ</div></td><td title="Omicron"><div title="Omicron" data-chr="Ο">Ο</div></td><td title="Pi"><div title="Pi" data-chr="Π">Π</div></td><td title="Rho"><div title="Rho" data-chr="Ρ">Ρ</div></td><td title="Sigma"><div title="Sigma" data-chr="Σ">Σ</div></td><td title="Tau"><div title="Tau" data-chr="Τ">Τ</div></td><td title="Upsilon"><div title="Upsilon" data-chr="Υ">Υ</div></td><td title="Phi"><div title="Phi" data-chr="Φ">Φ</div></td><td title="Chi"><div title="Chi" data-chr="Χ">Χ</div></td><td title="Psi"><div title="Psi" data-chr="Ψ">Ψ</div></td><td title="Omega"><div title="Omega" data-chr="Ω">Ω</div></td><td title="alpha"><div title="alpha" data-chr="α">α</div></td><td title="beta"><div title="beta" data-chr="β">β</div></td><td title="gamma"><div title="gamma" data-chr="γ">γ</div></td><td title="delta"><div title="delta" data-chr="δ">δ</div></td><td title="epsilon"><div title="epsilon" data-chr="ε">ε</div></td><td title="zeta"><div title="zeta" data-chr="ζ">ζ</div></td><td title="eta"><div title="eta" data-chr="η">η</div></td><td title="theta"><div title="theta" data-chr="θ">θ</div></td></tr><tr><td title="iota"><div title="iota" data-chr="ι">ι</div></td><td title="kappa"><div title="kappa" data-chr="κ">κ</div></td><td title="lambda"><div title="lambda" data-chr="λ">λ</div></td><td title="mu"><div title="mu" data-chr="μ">μ</div></td><td title="nu"><div title="nu" data-chr="ν">ν</div></td><td title="xi"><div title="xi" data-chr="ξ">ξ</div></td><td title="omicron"><div title="omicron" data-chr="ο">ο</div></td><td title="pi"><div title="pi" data-chr="π">π</div></td><td title="rho"><div title="rho" data-chr="ρ">ρ</div></td><td title="final sigma"><div title="final sigma" data-chr="ς">ς</div></td><td title="sigma"><div title="sigma" data-chr="σ">σ</div></td><td title="tau"><div title="tau" data-chr="τ">τ</div></td><td title="upsilon"><div title="upsilon" data-chr="υ">υ</div></td><td title="phi"><div title="phi" data-chr="φ">φ</div></td><td title="chi"><div title="chi" data-chr="χ">χ</div></td><td title="psi"><div title="psi" data-chr="ψ">ψ</div></td><td title="omega"><div title="omega" data-chr="ω">ω</div></td><td title="alef symbol"><div title="alef symbol" data-chr="ℵ">ℵ</div></td><td title="pi symbol"><div title="pi symbol" data-chr="ϖ">ϖ</div></td><td title="real part symbol"><div title="real part symbol" data-chr="ℜ">ℜ</div></td><td title="upsilon - hook symbol"><div title="upsilon - hook symbol" data-chr="ϒ">ϒ</div></td><td title="Weierstrass p"><div title="Weierstrass p" data-chr="℘">℘</div></td><td title="imaginary part"><div title="imaginary part" data-chr="ℑ">ℑ</div></td><td title="leftwards arrow"><div title="leftwards arrow" data-chr="←">←</div></td><td title="upwards arrow"><div title="upwards arrow" data-chr="↑">↑</div></td></tr><tr><td title="rightwards arrow"><div title="rightwards arrow" data-chr="→">→</div></td><td title="downwards arrow"><div title="downwards arrow" data-chr="↓">↓</div></td><td title="left right arrow"><div title="left right arrow" data-chr="↔">↔</div></td><td title="carriage return"><div title="carriage return" data-chr="↵">↵</div></td><td title="leftwards double arrow"><div title="leftwards double arrow" data-chr="⇐">⇐</div></td><td title="upwards double arrow"><div title="upwards double arrow" data-chr="⇑">⇑</div></td><td title="rightwards double arrow"><div title="rightwards double arrow" data-chr="⇒">⇒</div></td><td title="downwards double arrow"><div title="downwards double arrow" data-chr="⇓">⇓</div></td><td title="left right double arrow"><div title="left right double arrow" data-chr="⇔">⇔</div></td><td title="therefore"><div title="therefore" data-chr="∴">∴</div></td><td title="subset of"><div title="subset of" data-chr="⊂">⊂</div></td><td title="superset of"><div title="superset of" data-chr="⊃">⊃</div></td><td title="not a subset of"><div title="not a subset of" data-chr="⊄">⊄</div></td><td title="subset of or equal to"><div title="subset of or equal to" data-chr="⊆">⊆</div></td><td title="superset of or equal to"><div title="superset of or equal to" data-chr="⊇">⊇</div></td><td title="circled plus"><div title="circled plus" data-chr="⊕">⊕</div></td><td title="circled times"><div title="circled times" data-chr="⊗">⊗</div></td><td title="perpendicular"><div title="perpendicular" data-chr="⊥">⊥</div></td><td title="dot operator"><div title="dot operator" data-chr="⋅">⋅</div></td><td title="left ceiling"><div title="left ceiling" data-chr="⌈">⌈</div></td><td title="right ceiling"><div title="right ceiling" data-chr="⌉">⌉</div></td><td title="left floor"><div title="left floor" data-chr="⌊">⌊</div></td><td title="right floor"><div title="right floor" data-chr="⌋">⌋</div></td><td title="left-pointing angle bracket"><div title="left-pointing angle bracket" data-chr="〈">〈</div></td><td title="right-pointing angle bracket"><div title="right-pointing angle bracket" data-chr="〉">〉</div></td></tr><tr><td title="lozenge"><div title="lozenge" data-chr="◊">◊</div></td><td title="black spade suit"><div title="black spade suit" data-chr="♠">♠</div></td><td title="black club suit"><div title="black club suit" data-chr="♣">♣</div></td><td title="black heart suit"><div title="black heart suit" data-chr="♥">♥</div></td><td title="black diamond suit"><div title="black diamond suit" data-chr="♦">♦</div></td><td title="en space"><div title="en space" data-chr="&ensp;">&ensp;</div></td><td title="em space"><div title="em space" data-chr="&emsp;">&emsp;</div></td><td title="thin space"><div title="thin space" data-chr="&thinsp;">&thinsp;</div></td><td title="zero width non-joiner"><div title="zero width non-joiner" data-chr="&zwnj;">&zwnj;</div></td><td title="zero width joiner"><div title="zero width joiner" data-chr="&zwj;">&zwj;</div></td><td title="left-to-right mark"><div title="left-to-right mark" data-chr="&lrm;">&lrm;</div></td><td title="right-to-left mark"><div title="right-to-left mark" data-chr="&rlm;">&rlm;</div></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody></table>
+
+
+</div>
+</div>
+
+
+<script> 
+
+// Define the URL you want to check against
+const targetUrl = "https://www.vizoqo.com/notepad.php";
+
+// Function to check the current URL
+function checkUrlAndExit() {
+// Get the current URL
+const currentUrl = window.location.href;
+
+// Check if the current URL matches the target URL
+if (currentUrl !== targetUrl) {
+//console.log("Exiting: Current URL does not match the target URL.");
+return; // Exit the function if URLs do not match
+}
+
+// Continue with your code here if the URLs match
+//console.log("URL matches. Proceeding with further execution.");
+}
+
+// Call the function to perform the check
+checkUrlAndExit();
+
+
+class DraggableDialog {
+constructor(dialogElement) {
+this.dialog = dialogElement;
+this.isDragging = false;
+this.currentX = 0;
+this.currentY = 0;
+this.initialX = 0;
+this.initialY = 0;
+this.xOffset = 0;
+this.yOffset = 0;
+
+// Find the dialog header for drag handle
+this.dragHandle = this.dialog.querySelector('.dialogHeader');
+
+// Set initial center position
+this.centerDialog();
+this.init();
+}
+
+centerDialog() {
+const viewportWidth = window.innerWidth;
+const viewportHeight = window.innerHeight;
+const dialogWidth = this.dialog.offsetWidth;
+const dialogHeight = this.dialog.offsetHeight;
+
+// Calculate center position
+this.xOffset = (viewportWidth - dialogWidth) / 2;
+this.yOffset = (viewportHeight - dialogHeight) / 2;
+
+// Apply position
+this.updateDialogPosition();
+}
+
+updateDialogPosition() {
+this.dialog.style.left = `${this.xOffset}px`;
+this.dialog.style.top = `${this.yOffset}px`;
+}
+
+init() {
+// Mouse events
+this.dragHandle.addEventListener('mousedown', (e) => this.startDragging(e));
+document.addEventListener('mousemove', (e) => this.drag(e));
+document.addEventListener('mouseup', () => this.stopDragging());
+
+// Touch events for mobile
+this.dragHandle.addEventListener('touchstart', (e) => this.startDragging(e));
+document.addEventListener('touchmove', (e) => this.drag(e));
+document.addEventListener('touchend', () => this.stopDragging());
+
+// Handle window resize
+window.addEventListener('resize', () => this.centerDialog());
+}
+
+startDragging(e) { 
+
+if (e.target.closest('.closeButton')) return;
+
+this.isDragging = true;
+this.dialog.classList.add('dragging');
+
+if (e.type === "touchstart") {
+this.initialX = e.touches[0].clientX - this.xOffset;
+this.initialY = e.touches[0].clientY - this.yOffset;
+} else {
+this.initialX = e.clientX - this.xOffset;
+this.initialY = e.clientY - this.yOffset;
+}
+}
+
+drag(e) {
+if (!this.isDragging) return;
+e.preventDefault();
+
+if (e.type === "touchmove") {
+this.xOffset = e.touches[0].clientX - this.initialX;
+this.yOffset = e.touches[0].clientY - this.initialY;
+} else {
+this.xOffset = e.clientX - this.initialX;
+this.yOffset = e.clientY - this.initialY;
+}
+
+// Optional: Add bounds checking to keep dialog within viewport
+const viewportWidth = window.innerWidth;
+const viewportHeight = window.innerHeight;
+const dialogWidth = this.dialog.offsetWidth;
+const dialogHeight = this.dialog.offsetHeight;
+
+this.xOffset = Math.min(Math.max(0, this.xOffset), viewportWidth - dialogWidth);
+this.yOffset = Math.min(Math.max(0, this.yOffset), viewportHeight - dialogHeight);
+
+this.updateDialogPosition();
+}
+
+stopDragging() {
+this.isDragging = false;
+this.dialog.classList.remove('dragging');
+}
+
+resetPosition() {
+this.centerDialog();
+}
+}
+
+
+
+
+const editor = document.getElementById('editor');
+const wordCount = document.getElementById('wordCount');
+
+editor.addEventListener('input', updateWordCount);
+
+function updateWordCount() { 
+const text = editor.value.trim();
+wordCount.textContent = text ? text.split(/\s+/).length : 0;
+}
+
+function newFile() {
+// Show the custom modal
+document.getElementById('modalContent').style.display = 'inline-block';
+
+// Handle 'Yes' button click
+document.getElementById('confirmYes').onclick = function() {
+document.getElementById('editor').value = ''; // Clear the editor
+updateWordCount();
+document.getElementById('modalContent').style.display = 'none'; // Hide modal
+};
+
+// Handle 'No' button click
+document.getElementById('confirmNo').onclick = function() {
+document.getElementById('modalContent').style.display = 'none'; // Hide modal
+};
+}
+
+function saveFile() {
+const text = editor.value;
+const blob = new Blob([text], { type: 'text/plain' });
+const link = document.createElement('a');
+link.href = URL.createObjectURL(blob);
+link.download = 'document.txt';
+link.click();
+}
+
+function cutText() {
+document.execCommand('cut');
+}
+
+function copyText() {
+document.execCommand('copy');
+}
+
+function pasteText() {
+document.execCommand('paste');
+}
+
+function undo() {
+document.execCommand('undo');
+}
+
+function redo() {
+document.execCommand('redo');
+}
+
+// Clipboard events (alternative way to handle copy/paste if execCommand is restricted)
+editor.addEventListener('cut', updateWordCount);
+editor.addEventListener('paste', (event) => {
+setTimeout(updateWordCount, 50); // Wait for text to be pasted, then update
+});
+
+
+
+
+
+//document.querySelector('.dropdownMenu').style.display = 'none';
+function closeAllDropdownMenus() {
+// Select all elements with the class "dropdownMenu"
+const dropdownMenus = document.querySelectorAll('.dropdownMenu');
+// Loop through each element and set display to "none"
+dropdownMenus.forEach(menu => {
+menu.style.display = 'none';
+});
+}
+
+
+// Toggle visibility of the File menu dropdown
+function toggleFileMenu() { 
+const fileMenu = document.getElementById('fileMenu');
+//fileMenu.style.display = fileMenu.style.display === 'block' ? 'none' : 'block';
+if( fileMenu.style.display === 'block' ){ 
+closeAllDropdownMenus();
+}
+else{ closeAllDropdownMenus(); fileMenu.style.display = 'block';; }
+}
+
+// Close the File menu dropdown when clicking outside
+document.addEventListener('click', function(event) { 
+
+// Check if the clicked element is inside a dropdown menu
+if (!event.target.closest('.dropdownMenu') && !event.target.closest('.menuItem')) {
+closeAllDropdownMenus();
+}
+});
+
+
+function openDocument() {
+// Trigger the hidden file input
+document.getElementById('fileInput').click();
+}
+
+// Handle file selection and read the content
+document.getElementById('fileInput').addEventListener('change', function(event) {
+const file = event.target.files[0]; // Get the selected file
+if (file) {
+const reader = new FileReader();
+
+// Read file content and set it in the editor
+reader.onload = function(e) {
+document.getElementById('editor').value = e.target.result;
+};
+
+reader.readAsText(file); // Read the file as text
+}
+saveToLocalStorage();
+});
+
+
+function printDocument() {
+// Get the content from the textarea
+const editorContent = document.getElementById('editor').value;
+
+// Create a new window or iframe to hold the content
+const printWindow = window.open('', '', 'width=600,height=400');
+
+// Write the content and style it for printing
+printWindow.document.write('<html><head><title>Print Document</title><style>body { font-family: Arial, sans-serif; padding: 20px; } pre { white-space: pre-wrap; font-size: 16px; }</style></head><body><pre>' + editorContent + '</pre></body></html>');
+
+// Close the document to finish loading content in the print window
+printWindow.document.close();
+
+// Wait for the new window to load and then print
+printWindow.onload = function() {
+printWindow.print();
+printWindow.close(); // Automatically close the print window after printing
+};
+}
+
+
+
+function toggleEditMenu() {
+const editMenu = document.getElementById('editMenu');
+if( editMenu.style.display === 'block' ){ 
+closeAllDropdownMenus();
+}
+else{ closeAllDropdownMenus(); editMenu.style.display = 'block'; }
+}
+
+function toggleInsertMenu() {
+const insertMenu = document.getElementById('insertMenu');
+if( insertMenu.style.display === 'block' ){ 
+closeAllDropdownMenus();
+}
+else{ closeAllDropdownMenus(); insertMenu.style.display = 'block'; }
+}
+
+function toggleViewMenu() { 
+const viewMenu = document.getElementById('viewMenu');
+if( viewMenu.style.display === 'block' ){ 
+closeAllDropdownMenus();
+}
+else{ 
+closeAllDropdownMenus(); viewMenu.style.display = 'block'; 
+}
+}
+
+function toggleHelpMenu() {
+const helpMenu = document.getElementById('helpMenu');
+if( helpMenu.style.display === 'block' ){ 
+closeAllDropdownMenus();
+}
+else{ closeAllDropdownMenus(); helpMenu.style.display = 'block'; }
+}
+
+
+// Undo the last change in the editor
+function undoDocument() {
+const editor = document.getElementById('editor');
+if (document.execCommand) {
+document.execCommand('undo');
+} 
+else {
+alert('Undo is not supported in this browser');
+}
+}
+
+// Redo the last undone change in the editor
+function redoDocument() {
+const editor = document.getElementById('editor');
+if (document.execCommand) {
+document.execCommand('redo');
+} 
+else {
+alert('Redo is not supported in this browser');
+}
+}
+
+
+// Cut selected text from the editor with undo support
+function cutContent() {
+const editor = document.getElementById('editor');
+
+// Check for supported `cut` command
+if (document.queryCommandSupported && document.queryCommandSupported('cut')) {
+editor.focus();  // Ensure the editor is focused for the execCommand to work
+document.execCommand('cut');  // This should trigger the undo stack
+//document.getElementById('infoMessages').innerText = 'Content cut';
+} 
+else {
+// Fallback for environments where `execCommand('cut')` is unavailable
+
+// Check if any text is selected
+if (editor.selectionStart !== editor.selectionEnd) {
+const selectedText = editor.value.substring(editor.selectionStart, editor.selectionEnd);
+
+// Copy selected text to the clipboard
+navigator.clipboard.writeText(selectedText)
+.then(() => {
+// Remove the selected text and add it to undo history
+editor.setRangeText('', editor.selectionStart, editor.selectionEnd, 'end');
+
+// Manually trigger input event to add change to undo stack
+const event = new Event('input', { bubbles: true });
+editor.dispatchEvent(event);
+})
+.catch(err => {
+console.error('Failed to cut text: ', err);
+//alert('Unable to cut. Check clipboard permissions.');
+document.getElementById('infoMessages').innerText = 'Unable to cut. Check clipboard permissions.';
+});
+} 
+else {
+//alert("Please select text to cut.");
+document.getElementById('infoMessages').innerText = 'Please select text to cut.';
+}
+}
+}
+
+
+
+// Copy selected text from the editor
+function copyContent() {
+const editor = document.getElementById('editor');
+//editor.select();
+editor.focus();
+document.execCommand('copy');
+}
+
+// Paste text from the clipboard to the editor
+function pasteContent() {
+const editor = document.getElementById('editor');
+editor.focus();
+navigator.clipboard.readText()
+.then(text => {
+editor.setRangeText(text);
+editor.selectionEnd = editor.selectionStart + text.length;
+})
+.catch(err => {
+alert('Unable to paste. Check clipboard permissions.');
+});
+}
+
+// Select all text in the editor
+function selectAllDocument() {
+const editor = document.getElementById('editor');
+editor.select();
+}
+
+// Find and replace text in the editor
+let currentSearchIndex = 0;
+let foundIndexes = [];
+
+// Show the Find and Replace dialog
+function toggleFindAndReplaceDialog() {
+let dialog = document.getElementById('findReplaceDialog');
+dialog.style.display = dialog.style.display === 'none' ? 'block' : 'none';
+}
+
+// Close the Find and Replace dialog
+function closeFindReplaceDialog() {
+document.getElementById('findReplaceDialog').style.display = 'none';
+}
+
+function caseSensitiveCheckboxClicked() {
+currentSearchIndex = 0;
+}
+
+function wholeWordsCheckboxClicked() {
+currentSearchIndex = 0;
+}
+
+// Function to find text in the editor
+function findText() { 
+document.getElementById('infoMessages').innerText = '';
+const editor = document.getElementById('editor');
+const findValue = document.getElementById('findInput').value;
+const caseSensitive = document.getElementById('caseSensitiveCheckbox').checked;
+const wholeWords = document.getElementById('wholeWordsCheckbox').checked;
+
+const flags = caseSensitive ? 'g' : 'gi';
+const regex = wholeWords ? new RegExp(`\\b${findValue}\\b`, flags) : new RegExp(findValue, flags);
+const matches = [...editor.value.matchAll(regex)];
+
+foundIndexes = matches.map(match => match.index); 
+
+if( foundIndexes.length > 0 ){ 
+highlightText(editor, foundIndexes[currentSearchIndex]);
+if( foundIndexes.length > currentSearchIndex ){ 
+currentSearchIndex = currentSearchIndex + 1;
+}
+else { 
+document.getElementById('infoMessages').innerText = 'No matches found';
+}
+} 
+else {
+//alert('No matches found');
+document.getElementById('infoMessages').innerText = 'No matches found';
+}
+}
+
+// Function to highlight the text found
+function highlightText(editor, startIndex) {
+const matchLength = document.getElementById('findInput').value.length;
+
+// Select the text range
+editor.focus();
+editor.setSelectionRange(startIndex, startIndex + matchLength);
+
+// Optionally, you can add a background color to the textarea
+editor.style.backgroundColor = '#fff'; // Reset
+// This creates a highlight effect for the selected text
+editor.style.caretColor = 'transparent'; // Hide the cursor
+}
+
+// Replace current highlighted text
+function replaceText() { 
+document.getElementById('infoMessages').innerText = '';
+const editor = document.getElementById('editor');
+
+const findValue = document.getElementById('findInput').value;
+const caseSensitive = document.getElementById('caseSensitiveCheckbox').checked;
+const wholeWords = document.getElementById('wholeWordsCheckbox').checked;
+
+const flags = caseSensitive ? 'g' : 'gi';
+const regex = wholeWords ? new RegExp(`\\b${findValue}\\b`, flags) : new RegExp(findValue, flags);
+const matches = [...editor.value.matchAll(regex)];
+foundIndexes = matches.map(match => match.index);
+
+const startIndex = foundIndexes[currentSearchIndex];
+
+const replaceValue = document.getElementById('replaceInput').value;
+
+if (startIndex !== undefined) {
+const value = editor.value;
+const matchLength = document.getElementById('findInput').value.length;
+
+// Replace the text
+const newValue = value.substring(0, startIndex) + replaceValue + value.substring(startIndex + matchLength);
+editor.value = newValue; // Update the editor content
+saveToLocalStorage();
+highlightText(editor, foundIndexes[currentSearchIndex]);
+}
+else{ 
+document.getElementById('infoMessages').innerText = 'Nothing to replace';
+}
+
+} 
+
+// Replace all occurrences of the found text
+function replaceAllText() {
+const editor = document.getElementById('editor');
+const findValue = document.getElementById('findInput').value;
+const replaceValue = document.getElementById('replaceInput').value;
+
+editor.value = editor.value.replace(new RegExp(findValue, 'g'), replaceValue); // Replace all occurrences
+//closeFindReplaceDialog(); // Close the dialog after replacement
+saveToLocalStorage();
+}
+
+// Find the previous occurrence of the found text
+function findPrevText() { 
+document.getElementById('infoMessages').innerText = '';
+currentSearchIndex = (currentSearchIndex - 1 + foundIndexes.length) % foundIndexes.length; // Loop back to the end if at the beginning
+highlightText(document.getElementById('editor'), foundIndexes[currentSearchIndex]);
+}
+
+// Find the next occurrence of the found text
+function findNextText() { 
+document.getElementById('infoMessages').innerText = '';
+
+if (foundIndexes.length > 0) {
+currentSearchIndex = (currentSearchIndex + 1) % foundIndexes.length; // Loop back to the beginning if at the end 
+highlightText(document.getElementById('editor'), foundIndexes[currentSearchIndex]);
+} 
+else {
+findText();
+}
+
+}
+
+
+// Function to format date as DD.MM.YYYY
+function formatDate(date) {
+const day = String(date.getDate()).padStart(2, '0'); // Get day and pad with zero if needed
+const month = String(date.getMonth() + 1).padStart(2, '0'); // Get month (0-indexed) and pad
+const year = date.getFullYear(); // Get full year
+return `${day}.${month}.${year}`; // Return formatted date
+}
+
+// Function to format time as HH:mm (24-hour format)
+function updateDateTimeSubmenu() { 
+const submenu = document.getElementById("insertDateTimeSubmenu");
+
+// Clear previous content
+submenu.innerHTML = "";
+
+// Get current date and time
+const now = new Date();
+
+// Define date/time formats
+const formats = [
+now.toLocaleDateString(),// Locale date only
+now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }), // Custom date format: DD/MM/YYYY  
+formatDate(now), // Custom date format: DD.MM.YYYY
+now.toLocaleTimeString(),// Locale time only
+now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }), // Custom time format: HH:mm (24-hour format)
+now.toISOString(), // ISO format
+now.toUTCString(), // UTC format
+now.toLocaleString() // Default locale date and time
+];
+
+// Populate submenu with current date and time formats
+formats.forEach(format => {
+const div = document.createElement("div");
+div.className = "insertSubMenuItem";
+div.textContent = format;
+submenu.appendChild(div);
+});
+
+// Show the submenu
+submenu.style.display = "block";
+}
+
+function closeDateTimeSubmenu() {
+const submenu = document.getElementById("insertDateTimeSubmenu");
+submenu.style.display = "none";
+}
+
+
+// Function to insert non-breaking space
+function insertNonBreakingSpace() {
+const editor = document.getElementById('editor');
+editor.focus();
+insertAtCursor(editor, '\u00A0'); 
+}
+
+// Function to show special symbols dialog
+function toggleSpecialSymbolsDialog() {
+let dialog = document.getElementById('specialSymbolsDialog');
+dialog.style.display = dialog.style.display === 'none' ? 'block' : 'none';
+}
+
+document.querySelectorAll('#specialSymbolsTable td').forEach(td => {
+td.addEventListener('click', function() {
+const chr = this.querySelector('div').getAttribute('data-chr');
+if (chr) {
+insertAtCursor(document.getElementById('editor'), chr);
+}
+});
+});
+
+function closeSpecialSymbolsDialog() {
+document.getElementById('specialSymbolsDialog').style.display = 'none';
+}
+
+
+// Helper function to insert text at cursor position
+function insertAtCursor(editor, text) {
+if (!editor) return;
+
+if (editor.selectionStart || editor.selectionStart === 0) {
+const startPos = editor.selectionStart;
+const endPos = editor.selectionEnd;
+editor.value = editor.value.substring(0, startPos) + text + 
+editor.value.substring(endPos, editor.value.length);
+editor.selectionStart = startPos + text.length;
+editor.selectionEnd = startPos + text.length;
+} 
+else {
+editor.value += text;
+}
+editor.focus();
+saveToLocalStorage();
+}
+
+
+
+  // Dark mode toggle function
+function darkMode() {
+//document.body.classList.toggle("darkMode");
+document.querySelector(".editorContainer").classList.toggle("dark-mode");
+}
+
+  // Zoom in function
+let currentZoom = 1; // initial zoom level
+function zoomIn() {
+currentZoom += 0.1; // increase zoom level
+document.body.style.transform = `scale(${currentZoom})`;
+document.body.style.transformOrigin = "0 0"; // keep zoom fixed to top-left
+}
+
+  // Zoom out function
+function zoomOut() {
+currentZoom = Math.max(0.1, currentZoom - 0.1); // decrease zoom level, limit to 0.1
+document.body.style.transform = `scale(${currentZoom})`;
+document.body.style.transformOrigin = "0 0";
+}
+
+  // Fullscreen toggle function
+const editorContainer = document.querySelector('.editorContainer');
+let editorHeight = document.querySelector('#editor').offsetHeight;
+
+function fullScreen() { 
+if (!document.fullscreenElement) { 
+editorHeight = document.querySelector('#editor').offsetHeight;
+editorContainer.requestFullscreen().catch(err => {
+console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+});
+editor.style.height = window.innerHeight + 'px';
+} 
+else { 
+document.exitFullscreen();
+editorContainer.style.height = editorHeight + 'px';
+editor.style.height = editorHeight + 'px';
+}
+}
+
+
+
+
+
+const resizeHandle = document.querySelector('.resize-handle');
+
+resizeHandle.addEventListener('mousedown', initResize);
+
+function initResize(e) { 
+window.addEventListener('mousemove', resize);
+window.addEventListener('mouseup', stopResize);
+}
+
+function resize(e) { 
+editorContainer.style.maxWidth  = '100%';
+editor.style.width = e.clientX - editor.getBoundingClientRect().left + 'px';
+editor.style.height = e.clientY - editor.getBoundingClientRect().top + 'px';
+editorContainer.style.width = e.clientX - editor.getBoundingClientRect().left + 'px';
+editorContainer.style.height = e.clientY - editor.getBoundingClientRect().top + 'px';
+}
+
+function stopResize() {
+window.removeEventListener('mousemove', resize);
+window.removeEventListener('mouseup', stopResize);
+}
+
+
+
+
+
+// Save content to localStorage whenever it changes
+function saveToLocalStorage() {
+const content = document.getElementById('editor').value;
+localStorage.setItem('editorContent', content);
+updateWordCount();
+}
+
+// Load content from localStorage when the page loads
+function loadFromLocalStorage() {
+const savedContent = localStorage.getItem('editorContent');
+if (savedContent) {
+editor.value = savedContent;
+}
+updateWordCount();
+
+if (editor.setSelectionRange) { 
+editor.focus(); 
+editor.setSelectionRange(0, 0); 
+} 
+else if (editor.createTextRange) { 
+var range = editor.createTextRange();  
+range.moveStart('character', 0); 
+range.select(); 
+}
+
+}
+
+// Attach event listener to save content on each keystroke
+document.getElementById('editor').addEventListener('input', saveToLocalStorage);
+
+// Call load function when page loads
+window.addEventListener('load', loadFromLocalStorage);
+
+
+document.addEventListener('DOMContentLoaded', () => { 
+
+const dialogFindReplace = document.getElementById('findReplaceDialog');
+const draggableFindReplace = new DraggableDialog(dialogFindReplace);
+
+const dialogSpecialSymbols = document.getElementById('specialSymbolsDialog');
+const draggableSpecialSymbols = new DraggableDialog(dialogSpecialSymbols);
+
+});
+
+
+</script>
+</body>
+</html>
